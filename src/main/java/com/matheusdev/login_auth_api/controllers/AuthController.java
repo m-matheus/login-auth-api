@@ -26,6 +26,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
 
+    @SuppressWarnings("rawtypes")
     @PostMapping("/login")
     public ResponseEntity login(@RequestBody LoginRequestDTO body) {
         User user = this.repository.findByEmail(body.email()).orElseThrow(() -> new RuntimeException("User not found"));
