@@ -3,7 +3,6 @@ package com.matheusdev.login_auth_api.controllers;
 import java.util.Optional;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,6 +12,7 @@ import com.matheusdev.login_auth_api.domain.user.User;
 import com.matheusdev.login_auth_api.dto.LoginRequestDTO;
 import com.matheusdev.login_auth_api.dto.RegisterRequestDTO;
 import com.matheusdev.login_auth_api.dto.ResponseDTO;
+import com.matheusdev.login_auth_api.infra.security.PasswordService;
 import com.matheusdev.login_auth_api.infra.security.TokenService;
 import com.matheusdev.login_auth_api.repositories.UserRepository;
 
@@ -23,14 +23,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuthController {
     private final UserRepository repository;
-    private final PasswordEncoder passwordEncoder;
+    private final PasswordService passwordService;
     private final TokenService tokenService;
 
     @SuppressWarnings("rawtypes")
     @PostMapping("/login")
     public ResponseEntity login(@RequestBody LoginRequestDTO body) {
         User user = this.repository.findByEmail(body.email()).orElseThrow(() -> new RuntimeException("User not found"));
-        if(passwordEncoder.matches(body.password(), user.getPassword())) {
+        if(passwordService.verifyPassword(user.getPassword(), body.password())) {
             String token = this.tokenService.generateToken(user);
             return ResponseEntity.ok(new ResponseDTO(user.getName(), token));
         }
@@ -43,7 +43,7 @@ public class AuthController {
         Optional<User> user = this.repository.findByEmail(body.email());
         if(user.isEmpty()) {
             User newUser = new User();
-            newUser.setPassword(passwordEncoder.encode(body.password()));
+            newUser.setPassword(passwordService.hashPassword(body.password()));
             newUser.setEmail(body.email());
             newUser.setName(body.name());
             this.repository.save(newUser);
